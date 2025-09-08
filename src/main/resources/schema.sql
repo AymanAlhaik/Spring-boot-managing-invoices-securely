@@ -100,3 +100,4 @@ CREATE TABLE TwoFactorVerifications(
                                        CONSTRAINT UQ_TwoFactorVerifications_Url UNIQUE (code),
                                        CONSTRAINT UQ_TwoFactorVerifications_User_Id UNIQUE (user_id)
 );
+
