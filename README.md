@@ -89,3 +89,5 @@
 - Use constraints and defaults to enforce security and data integrity
 - Modular schema allows easy extension (e.g., new event types, roles)
 - Full traceability of user actions for audit and compliance
+
+![img.png](img.png)
