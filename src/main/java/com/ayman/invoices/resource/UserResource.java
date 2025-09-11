@@ -2,9 +2,12 @@ package com.ayman.invoices.resource;
 
 import com.ayman.invoices.domain.HttpResponse;
 import com.ayman.invoices.domain.User;
+import com.ayman.invoices.domain.UserPrincipal;
 import com.ayman.invoices.dto.UserDTO;
 import com.ayman.invoices.form.LoginForm;
+import com.ayman.invoices.provider.TokenProvider;
 import com.ayman.invoices.repository.UserRepository;
+import com.ayman.invoices.service.RoleService;
 import com.ayman.invoices.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +35,9 @@ import static org.springframework.http.HttpStatus.*;
 @Slf4j
 public class UserResource {
     private final UserService userService;
+    private final RoleService roleService;
     private final AuthenticationManager authenticationManager;
+    private final TokenProvider tokenProvider;
 
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> loginUser(@RequestBody @Valid LoginForm loginForm) {
@@ -41,12 +46,35 @@ public class UserResource {
                 loginForm.getPassword())
         );
 
-        UserDTO userDTO = userService.getUserByEmail(loginForm.getEmail());//video 10
+        UserDTO user = userService.getUserByEmail(loginForm.getEmail());//video 10
+        return user.isUsingMfa() ? sendVerificationCode(user) : sendResponse(user);
+    }
+
+    private ResponseEntity<HttpResponse> sendResponse(UserDTO user) {
         return ResponseEntity.ok().body(
                 HttpResponse.builder()
                         .timeStamp(now().toString())
-                        .data(Map.of("user", userDTO))
+                        .data(Map.of("user", user,
+                                "access_token", tokenProvider.createAccessToken(getUserPrincipal(user)),
+                                "refresh_token", tokenProvider.createRefreshToken(getUserPrincipal(user))))
                         .message("Login success")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build());
+    }
+
+    private UserPrincipal getUserPrincipal(UserDTO user) {
+        return new UserPrincipal(userService.getUser(user.getEmail()),
+                roleService.getRoleByUserId(user.getId()).getPermission());
+    }
+
+    private ResponseEntity<HttpResponse> sendVerificationCode(UserDTO user) {
+        userService.sendVerificationCode(user);
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .data(Map.of("user", user))
+                        .message("Verification code sent")
                         .status(OK)
                         .statusCode(OK.value())
                         .build());
@@ -58,6 +86,7 @@ public class UserResource {
                 .path("/users/get/<userId>")
                 .toUriString());
     }
+
     @PostMapping("/register")
     public ResponseEntity<HttpResponse> saveUser(@RequestBody @Valid User user) {
         UserDTO userDTO = userService.createUser(user);
@@ -71,7 +100,6 @@ public class UserResource {
                         .build()
         );
     }
-
 
 
 }

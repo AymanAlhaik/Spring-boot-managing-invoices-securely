@@ -3,6 +3,7 @@ package com.ayman.invoices.repository.implementation;
 import com.ayman.invoices.domain.Role;
 import com.ayman.invoices.domain.User;
 import com.ayman.invoices.domain.UserPrincipal;
+import com.ayman.invoices.dto.UserDTO;
 import com.ayman.invoices.enumeration.RoleType;
 import com.ayman.invoices.enumeration.VerificationType;
 import com.ayman.invoices.exception.ApiException;
@@ -12,6 +13,7 @@ import com.ayman.invoices.rowmapper.UserRowMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -31,12 +33,18 @@ import java.util.*;
 import static com.ayman.invoices.enumeration.RoleType.*;
 import static com.ayman.invoices.enumeration.VerificationType.ACCOUNT;
 import static com.ayman.invoices.query.UserQuery.*;
+import static com.ayman.invoices.utils.SmsUtils.sendSms;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.commons.lang3.time.DateFormatUtils.format;
+import static org.apache.commons.lang3.time.DateUtils.addDays;
 
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class UserRepositoryImpl implements UserRepository<User>, UserDetailsService {
+    //standard SQL date format
+    private static final String DATE_FORMAT = "yyyy-MM-dd hh:mm:ss";
     private final NamedParameterJdbcTemplate jdbc;
     private final RoleRepository<Role> roleRepository;
     private final PasswordEncoder encoder;
@@ -131,6 +139,21 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
         catch (EmptyResultDataAccessException exception) {
             throw new ApiException("No user found with email: " + email);
+        }
+        catch (Exception exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("An error occurred while creating user. Please try again later.");
+        }
+    }
+
+    @Override
+    public void sendVerificationCode(UserDTO user) {
+       String expirationDate = DateFormatUtils.format(addDays(new Date(), 1), DATE_FORMAT);
+       String verificationCode = randomAlphabetic(8).toUpperCase();
+        try {
+           jdbc.update(DELETE_TWO_FACTOR_VERIFICATION_CODE_BY_USER_ID_QUERY, Map.of("id", user.getId()));
+            jdbc.update(INSERT_VERIFICATION_CODE_QUERY, Map.of("userId", user.getId(), "code", verificationCode, "expirationDate", expirationDate));
+            sendSms(user.getPhone(), "From: SecureCapita \nVerification code \n"+verificationCode);
         }
         catch (Exception exception) {
             log.error(exception.getMessage());
