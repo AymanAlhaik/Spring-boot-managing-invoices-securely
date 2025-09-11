@@ -1,6 +1,7 @@
 package com.ayman.invoices.repository;
 
 import com.ayman.invoices.domain.User;
+import com.ayman.invoices.dto.UserDTO;
 
 import java.util.Collection;
 
@@ -11,6 +12,9 @@ public interface UserRepository<T extends User> {
     T get(Long id);
     T update(T data);
     Boolean delete(Long id);
+
+    User getUserByEmail(String email);
+
 
     /* More Operations */
 

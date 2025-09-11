@@ -2,11 +2,13 @@ package com.ayman.invoices.repository.implementation;
 
 import com.ayman.invoices.domain.Role;
 import com.ayman.invoices.domain.User;
+import com.ayman.invoices.domain.UserPrincipal;
 import com.ayman.invoices.enumeration.RoleType;
 import com.ayman.invoices.enumeration.VerificationType;
 import com.ayman.invoices.exception.ApiException;
 import com.ayman.invoices.repository.RoleRepository;
 import com.ayman.invoices.repository.UserRepository;
+import com.ayman.invoices.rowmapper.UserRowMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
@@ -31,7 +36,7 @@ import static com.ayman.invoices.query.UserQuery.*;
 @Repository
 @RequiredArgsConstructor
 @Slf4j
-public class UserRepositoryImpl implements UserRepository<User> {
+public class UserRepositoryImpl implements UserRepository<User>, UserDetailsService {
     private final NamedParameterJdbcTemplate jdbc;
     private final RoleRepository<Role> roleRepository;
     private final PasswordEncoder encoder;
@@ -58,7 +63,7 @@ public class UserRepositoryImpl implements UserRepository<User> {
                     Map.of("userId", user.getId(), "url", verificationUrl));
             //send email to user with verification url
 //            emailService.sendVerificationUrl(user.getFirstName(), user.getEmail(), verificationUrl, ACCOUNT);
-            user.setEnabled(false);
+            user.setEnabled(true);
             user.setNotLocked(true);
             //return newly created user
             return user;
@@ -104,5 +109,32 @@ public class UserRepositoryImpl implements UserRepository<User> {
 
     private Integer getEmailCount(String email) {
         return jdbc.queryForObject(COUNT_USER_EMAIL_QUERY, Map.of("email", email), Integer.class);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = getUserByEmail(email);
+        if (user == null) {
+            log.error("User not found: {}", email);
+            throw new UsernameNotFoundException("User not found: " + email);
+
+        } else {
+            log.info("User found by email: {}", email);
+            return new UserPrincipal(user, roleRepository.getRoleByUserId(user.getId()).getPermission());
+        }
+    }
+
+    public User getUserByEmail(String email) {
+        try {
+            User user = jdbc.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
+            return user;
+        }
+        catch (EmptyResultDataAccessException exception) {
+            throw new ApiException("No user found with email: " + email);
+        }
+        catch (Exception exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("An error occurred while creating user. Please try again later.");
+        }
     }
 }

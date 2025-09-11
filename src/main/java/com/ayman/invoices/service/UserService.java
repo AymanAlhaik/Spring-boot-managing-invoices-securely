@@ -5,4 +5,6 @@ import com.ayman.invoices.dto.UserDTO;
 
 public interface UserService {
     UserDTO createUser(User user);
+    UserDTO getUserByEmail(String email);
 }
+/* youi aer */
