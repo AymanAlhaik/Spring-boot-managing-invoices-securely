@@ -136,11 +136,9 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         try {
             User user = jdbc.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
             return user;
-        }
-        catch (EmptyResultDataAccessException exception) {
+        } catch (EmptyResultDataAccessException exception) {
             throw new ApiException("No user found with email: " + email);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             log.error(exception.getMessage());
             throw new ApiException("An error occurred while creating user. Please try again later.");
         }
@@ -148,16 +146,34 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
 
     @Override
     public void sendVerificationCode(UserDTO user) {
-       String expirationDate = DateFormatUtils.format(addDays(new Date(), 1), DATE_FORMAT);
-       String verificationCode = randomAlphabetic(8).toUpperCase();
+        String expirationDate = DateFormatUtils.format(addDays(new Date(), 1), DATE_FORMAT);
+        String verificationCode = randomAlphabetic(8).toUpperCase();
         try {
-           jdbc.update(DELETE_TWO_FACTOR_VERIFICATION_CODE_BY_USER_ID_QUERY, Map.of("id", user.getId()));
-            jdbc.update(INSERT_VERIFICATION_CODE_QUERY, Map.of("userId", user.getId(), "code", verificationCode, "expirationDate", expirationDate));
-            sendSms(user.getPhone(), "From: SecureCapita \nVerification code \n"+verificationCode);
-        }
-        catch (Exception exception) {
+            jdbc.update(DELETE_TWO_FACTOR_VERIFICATION_CODE_BY_USER_ID_QUERY, Map.of("id", user.getId()));
+            jdbc.update(INSERT_VERIFICATION_CODE_QUERY, Map.of("userId", user.getId(), "code", verificationCode, "expression_date", expirationDate));
+            sendSms(user.getPhone(), "From: SecureCapita \nVerification code \n" + verificationCode);
+        } catch (Exception exception) {
             log.error(exception.getMessage());
             throw new ApiException("An error occurred while creating user. Please try again later.");
+        }
+    }
+
+    @Override
+    public User verifyCode(String email, String code) {
+        try {
+            User userByCode = jdbc.queryForObject(SELECT_USER_BY_CODE_QUERY, Map.of("code", code), new UserRowMapper());
+            User userByEmail = jdbc.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
+            if (userByCode.getEmail().equalsIgnoreCase(userByEmail.getEmail())) {
+                jdbc.update(DELETE_CODE, Map.of( "code", code));
+                log.info("user code deleted.");
+                return userByEmail;
+            } else {
+                throw new ApiException("Invalid verification code. Please try again later.");
+            }
+        } catch (EmptyResultDataAccessException e) {
+            throw new ApiException("No user found with email: " + email);
+        } catch (Exception e) {
+            throw new ApiException("An error occurred. Please try again later.");
         }
     }
 }

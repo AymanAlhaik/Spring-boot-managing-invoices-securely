@@ -12,13 +12,12 @@ public interface UserRepository<T extends User> {
     T get(Long id);
     T update(T data);
     Boolean delete(Long id);
+    /* More Operations */
 
     User getUserByEmail(String email);
 
     void sendVerificationCode(UserDTO user);
 
-
-
-    /* More Operations */
+    User verifyCode(String email, String code);
 
 }

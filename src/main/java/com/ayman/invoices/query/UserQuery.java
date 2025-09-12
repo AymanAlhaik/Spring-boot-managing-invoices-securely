@@ -5,8 +5,10 @@ public class UserQuery {
             "INSERT INTO users (first_name, last_name, email, password)" +
                     " VALUES (:firstName, :lastName, :email, :password)" ;
     public static final String SELECT_USER_BY_EMAIL_QUERY = "SELECT * FROM Users WHERE email = :email";
+    public static final String SELECT_USER_BY_CODE_QUERY = "SELECT * FROM Users WHERE id = (SELECT user_id FROM TwoFactorVerifications WHERE code = :code)";
     public static String INSERT_ACCOUNT_VERIFICATION_URL_QUERY="INSERT INTO AccountVerifications(user_id, url) VALUES (:userId, :url)";
-    public static String DELETE_TWO_FACTOR_VERIFICATION_CODE_BY_USER_ID_QUERY = "DELETE FROM TowFactorVerification WHERE user_id = :id";
-    public static String INSERT_VERIFICATION_CODE_QUERY = "INSERT INTO TowFactorVerification (user_id, code, expiration_date) VALUES (:userId, :code, :expirationDate)";
+    public static String DELETE_TWO_FACTOR_VERIFICATION_CODE_BY_USER_ID_QUERY = "DELETE FROM TwoFactorVerifications WHERE user_id = :id";
+    public static String INSERT_VERIFICATION_CODE_QUERY = "INSERT INTO TwoFactorVerifications (user_id, code, expression_date) VALUES (:userId, :code, :expression_date)";
+    public static final String DELETE_CODE = "DELETE FROM TwoFactorVerifications WHERE code = :code";
 
 }

@@ -8,6 +8,8 @@ import com.ayman.invoices.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import static com.ayman.invoices.dtomapper.UserDTOMapper.*;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -17,13 +19,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO createUser(User user) {
         User createdUser = userRepository.create(user);
-        return UserDTOMapper.fromUser(user);
+        return fromUser(user);
     }
 
     @Override
     public UserDTO getUserByEmail(String email) {
         User user = userRepository.getUserByEmail(email);
-        return UserDTOMapper.fromUser(user);
+        return fromUser(user);
     }
 
     @Override
@@ -34,5 +36,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUser(String email) {
        return userRepository.getUserByEmail(email);
+    }
+
+    @Override
+    public UserDTO verifyCode(String email, String code) {
+       return fromUser( userRepository.verifyCode(email, code));
     }
 }

@@ -34,7 +34,14 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private static final int STRENGTH = 12;
-    private static final String[] PUBLIC_URLS = {"/users/login/**", "/users/login", "/users/register/**", "/users/register"};
+    private static final String[] PUBLIC_URLS = {
+            "/users/login/**",
+            "/users/login",
+            "/users/register/**",
+            "/users/register",
+            "/users/verify/**"
+    };
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -51,7 +58,7 @@ public class SecurityConfig {
                 .exceptionHandling(exceptionHandler ->
                         exceptionHandler.accessDeniedHandler(accessDeniedHandler).authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST,PUBLIC_URLS).permitAll()
+                        .requestMatchers(PUBLIC_URLS).permitAll()
                         .requestMatchers(HttpMethod.DELETE, "users/delete/**").hasAnyAuthority("DELETE_USER")
                         .requestMatchers(HttpMethod.DELETE, "customer/delete/**").hasAnyAuthority("DELETE_CUSTOMER")
                         .anyRequest().authenticated()
