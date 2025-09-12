@@ -1,5 +1,6 @@
 package com.ayman.invoices.configuration;
 
+import com.ayman.invoices.filter.CustomAuthorizationFilter;
 import com.ayman.invoices.handler.CustomAccessDeniedHandler;
 import com.ayman.invoices.handler.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
@@ -33,6 +35,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final CustomAuthorizationFilter customAuthorizationFilter;
     private static final int STRENGTH = 12;
     private static final String[] PUBLIC_URLS = {
             "/users/login/**",
@@ -41,7 +44,6 @@ public class SecurityConfig {
             "/users/register",
             "/users/verify/**"
     };
-
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -62,7 +64,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "users/delete/**").hasAnyAuthority("DELETE_USER")
                         .requestMatchers(HttpMethod.DELETE, "customer/delete/**").hasAnyAuthority("DELETE_CUSTOMER")
                         .anyRequest().authenticated()
-                );
+                )
+                .addFilterBefore(customAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
