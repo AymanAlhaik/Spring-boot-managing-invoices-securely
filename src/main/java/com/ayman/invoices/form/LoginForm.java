@@ -12,9 +12,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @SuperBuilder
 public class LoginForm {
-    @Email
-    @NotEmpty
+    @Email(message = "Email is not valid")
+    @NotEmpty(message = "Email can't be empty")
     private String email;
-    @NotEmpty
+    @NotEmpty(message = "Password can't be empty")
     private String password;
 }

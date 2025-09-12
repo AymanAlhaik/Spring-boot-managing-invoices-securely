@@ -10,5 +10,6 @@ public class UserQuery {
     public static String DELETE_TWO_FACTOR_VERIFICATION_CODE_BY_USER_ID_QUERY = "DELETE FROM TwoFactorVerifications WHERE user_id = :id";
     public static String INSERT_VERIFICATION_CODE_QUERY = "INSERT INTO TwoFactorVerifications (user_id, code, expression_date) VALUES (:userId, :code, :expression_date)";
     public static final String DELETE_CODE = "DELETE FROM TwoFactorVerifications WHERE code = :code";
+    public static final String SELECT_CODE_EXPIRATION_DATE_QUERY = "SELECT expression_date < NOW() AS is_expired FROM TwoFactorVerifications WHERE code =:code";
 
 }

@@ -23,6 +23,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.Map;
 
+import static com.ayman.invoices.dtomapper.UserDTOMapper.fromUser;
+import static com.ayman.invoices.dtomapper.UserDTOMapper.toUser;
 import static java.time.LocalDateTime.now;
 import static org.springframework.http.HttpStatus.*;
 
@@ -62,7 +64,7 @@ public class UserResource {
     }
 
     private UserPrincipal getUserPrincipal(UserDTO user) {
-        return new UserPrincipal(userService.getUser(user.getEmail()),
+        return new UserPrincipal(toUser(userService.getUserByEmail(user.getEmail())),
                 roleService.getRoleByUserId(user.getId()).getPermission());
     }
 

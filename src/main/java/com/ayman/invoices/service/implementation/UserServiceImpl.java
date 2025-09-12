@@ -1,8 +1,10 @@
 package com.ayman.invoices.service.implementation;
 
+import com.ayman.invoices.domain.Role;
 import com.ayman.invoices.domain.User;
 import com.ayman.invoices.dto.UserDTO;
 import com.ayman.invoices.dtomapper.UserDTOMapper;
+import com.ayman.invoices.repository.RoleRepository;
 import com.ayman.invoices.repository.UserRepository;
 import com.ayman.invoices.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -13,19 +15,19 @@ import static com.ayman.invoices.dtomapper.UserDTOMapper.*;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
+    private final RoleRepository<Role> roleRepository;
     private final UserRepository<User> userRepository;
-    private final UserDTOMapper userDTOMapper;
+
     @Override
     public UserDTO createUser(User user) {
         User createdUser = userRepository.create(user);
-        return fromUser(user);
+        return mapToUserDTO(createdUser);
     }
 
     @Override
     public UserDTO getUserByEmail(String email) {
         User user = userRepository.getUserByEmail(email);
-        return fromUser(user);
+        return mapToUserDTO(user);
     }
 
     @Override
@@ -34,12 +36,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getUser(String email) {
-       return userRepository.getUserByEmail(email);
-    }
-
-    @Override
     public UserDTO verifyCode(String email, String code) {
-       return fromUser( userRepository.verifyCode(email, code));
+       return mapToUserDTO(userRepository.verifyCode(email, code));
+    }
+    private UserDTO mapToUserDTO(User user) {
+        return fromUser(user, roleRepository.getRoleByUserId(user.getId()));
     }
 }
