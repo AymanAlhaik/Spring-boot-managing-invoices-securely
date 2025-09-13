@@ -7,7 +7,9 @@ import com.auth0.jwt.exceptions.InvalidClaimException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.ayman.invoices.domain.UserPrincipal;
+import com.ayman.invoices.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,10 +23,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class TokenProvider {
+    private final UserService userService;
     private static final String COMPANY_NAME = "Ayman Company";
     private static final String CUSTOMER_MANAGEMENT_SERVICE = "Customer Management Service";
-    //8 minuts
+
     private static final long ACCESS_TOKEN_EXPIRATION_TIME = 1_800_000;
     //5 days
     private static final long REFRESH_TOKEN_EXPIRATION_TIME = 432_000_000;
@@ -70,7 +74,8 @@ public class TokenProvider {
         return verifier;
     }
     public Authentication getAuthentication(String email, List<GrantedAuthority> authorities, HttpServletRequest request) {
-        UsernamePasswordAuthenticationToken usernamePassAuthToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+        //adding the whole userDTO object to the authentication object for making it available a cross the request lifecycle
+        UsernamePasswordAuthenticationToken usernamePassAuthToken = new UsernamePasswordAuthenticationToken(userService.getUserByEmail(email), null, authorities);
         usernamePassAuthToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         return usernamePassAuthToken;
 
@@ -91,11 +96,11 @@ public class TokenProvider {
         }
         catch (TokenExpiredException e){
             request.setAttribute("expireMessage", e.getMessage());
-            return null;
+            throw e;
         }
         catch (InvalidClaimException e){
             request.setAttribute("invalideClaim", e.getMessage());
-            return null;
+            throw e;
         }
         catch (Exception e){
             throw e;

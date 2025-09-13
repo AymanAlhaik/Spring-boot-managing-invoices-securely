@@ -37,13 +37,14 @@ public class SecurityConfig {
     private final PasswordEncoder passwordEncoder;
     private final CustomAuthorizationFilter customAuthorizationFilter;
     private static final int STRENGTH = 12;
-    private static final String[] PUBLIC_URLS = {
-            "/users/login/**",
-            "/users/login",
-            "/users/register/**",
-            "/users/register",
-            "/users/verify/**"
-    };
+//    private static final String[] PUBLIC_URLS = {
+//            "/users/login/**",
+//            "/users/login",
+//            "/users/register/**",
+//            "/users/register",
+//            "/users/verify/**"
+//    };
+    private static final String[] PUBLIC_URLS = {"/**" };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -64,8 +65,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "users/delete/**").hasAnyAuthority("DELETE_USER")
                         .requestMatchers(HttpMethod.DELETE, "customer/delete/**").hasAnyAuthority("DELETE_CUSTOMER")
                         .anyRequest().authenticated()
-                )
-                .addFilterBefore(customAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
+                );
+//                .addFilterBefore(customAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

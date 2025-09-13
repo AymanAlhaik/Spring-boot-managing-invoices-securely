@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.http.parser.Authorization;
+import org.slf4j.Marker;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.ayman.invoices.utils.ExceptionUtils.processError;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.EMPTY;
 
@@ -36,10 +38,12 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
     protected static final String TOKEN_KEY = "token";
 
     private final TokenProvider tokenProvider;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
             Map<String, String> values = getRequestValues(request);
+            log.error("values are: {}", values.toString());
             String token = getToken(request);
             if (tokenProvider.isTokenValid(values.get(EMAIL_KEY), token)) {
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(values.get(TOKEN_KEY));
@@ -49,9 +53,9 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
             }
             filterChain.doFilter(request, response);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            //processError(request, response, exception);
+        } catch (Exception exception) {
+            log.error("Error while processing request", exception);
+            processError(request, response, exception);
         }
     }
 
@@ -60,7 +64,8 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
     }
 
     private Map<String, String> getRequestValues(HttpServletRequest request) {
-        return Map.of(EMAIL_KEY, tokenProvider.getSubject(getToken(request), request), TOKEN_KEY, getToken(request));
+        Map<String, String> emailKey = Map.of(EMAIL_KEY, tokenProvider.getSubject(getToken(request), request), TOKEN_KEY, getToken(request));
+        return emailKey;
     }
 
     //this method invoked before doFilterInternal, so if there is no authorization header

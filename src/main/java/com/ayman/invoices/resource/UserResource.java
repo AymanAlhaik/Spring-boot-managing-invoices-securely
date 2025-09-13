@@ -4,12 +4,17 @@ import com.ayman.invoices.domain.HttpResponse;
 import com.ayman.invoices.domain.User;
 import com.ayman.invoices.domain.UserPrincipal;
 import com.ayman.invoices.dto.UserDTO;
+import com.ayman.invoices.exception.ApiException;
 import com.ayman.invoices.form.LoginForm;
 import com.ayman.invoices.provider.TokenProvider;
 import com.ayman.invoices.repository.UserRepository;
 import com.ayman.invoices.service.RoleService;
 import com.ayman.invoices.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Marker;
@@ -26,6 +31,7 @@ import java.util.Map;
 
 import static com.ayman.invoices.dtomapper.UserDTOMapper.fromUser;
 import static com.ayman.invoices.dtomapper.UserDTOMapper.toUser;
+import static com.ayman.invoices.utils.ExceptionUtils.processError;
 import static java.time.LocalDateTime.now;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.unauthenticated;
@@ -39,18 +45,18 @@ public class UserResource {
     private final RoleService roleService;
     private final AuthenticationManager authenticationManager;
     private final TokenProvider tokenProvider;
+    private final HttpServletRequest request;
+    private final HttpServletResponse response;
 
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> loginUser(@RequestBody @Valid LoginForm loginForm) {
-//        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-//                loginForm.getEmail(),
-//                loginForm.getPassword())
-//        );
-        authenticationManager.authenticate(unauthenticated( loginForm.getEmail(), loginForm.getPassword()));
-
-        UserDTO user = userService.getUserByEmail(loginForm.getEmail());
-        log.info("Logged in user: {}", user.isUsingMfa());
+        Authentication authentication = authenticate(loginForm.getEmail(), loginForm.getPassword());
+        UserDTO user = getAuthenticatedUser(authentication);
         return user.isUsingMfa() ? sendVerificationCode(user) : sendResponse(user);
+    }
+
+    private UserDTO getAuthenticatedUser(Authentication authentication) {
+        return ((UserPrincipal) authentication.getPrincipal()).getUser();
     }
 
     private ResponseEntity<HttpResponse> sendResponse(UserDTO user) {
@@ -68,7 +74,7 @@ public class UserResource {
 
     private UserPrincipal getUserPrincipal(UserDTO user) {
         return new UserPrincipal(toUser(userService.getUserByEmail(user.getEmail())),
-                roleService.getRoleByUserId(user.getId()).getPermission());
+                roleService.getRoleByUserId(user.getId()));
     }
 
     private ResponseEntity<HttpResponse> sendVerificationCode(UserDTO user) {
@@ -116,6 +122,7 @@ public class UserResource {
                         .statusCode(OK.value())
                         .build());
     }
+
     @GetMapping("/verify/code/{email}/{code}")
     public ResponseEntity<HttpResponse> verifyCode(@PathVariable String email, @PathVariable String code) {
         UserDTO user = userService.verifyCode(email, code);
@@ -129,5 +136,14 @@ public class UserResource {
                         .status(OK)
                         .statusCode(OK.value())
                         .build());
+    }
+
+    private Authentication authenticate(String email, String password) {
+        try {
+            return authenticationManager.authenticate(unauthenticated(email, password));
+        } catch (Exception exception) {
+            processError(request, response, exception);
+            throw new ApiException(exception.getMessage());
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.ayman.invoices.domain;
 
+import com.ayman.invoices.dto.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -11,15 +12,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static com.ayman.invoices.dtomapper.UserDTOMapper.fromUser;
+
 @RequiredArgsConstructor
 public class UserPrincipal implements UserDetails {
     private final User user;
-    private final String permissions;
+    private final Role role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        String[] roles = permissions.split(",");
+        String[] roles = role.getPermission().split(",");
         for (String role : roles) {
             authorities.add(new SimpleGrantedAuthority(role));
         }
@@ -56,4 +59,7 @@ public class UserPrincipal implements UserDetails {
         return true;
     }
 
+    public UserDTO getUser(){
+        return fromUser(this.user, role);
+    }
 }

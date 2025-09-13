@@ -69,11 +69,9 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
 
     @Override
     public Role getRoleByUserId(Long userId) {
-        log.info("Getting role to user id: {}", userId);
         try {
             Role role = jdbc.queryForObject(SELECT_ROLE_BY_ID_QUERY, Map.of("id", userId),
                     new RoleRowMapper());
-            log.error("===========the role is: {}", role.getPermission());
             return role;
         } catch (EmptyResultDataAccessException exception) {
             throw new ApiException("No role found by name: " + ROLE_USER.name());
