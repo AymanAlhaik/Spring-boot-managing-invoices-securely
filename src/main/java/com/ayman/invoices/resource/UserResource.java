@@ -122,7 +122,45 @@ public class UserResource {
                         .statusCode(OK.value())
                         .build());
     }
-
+    //START: reset password when user is not logged in
+    @GetMapping("/reset-password/{email}")
+    public ResponseEntity<HttpResponse> resetPassword(@PathVariable String email) {
+        userService.resetPassword(email);
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message("Email sent. Please check your email to reset your password.")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build());
+    }
+    @GetMapping("/verify/password/{key}")
+    public ResponseEntity<HttpResponse> verifyPasswordUrl(@PathVariable String key) {
+        UserDTO user =  userService.verifyPasswordKey(key);
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message("Please enter a new password.")
+                        .data(Map.of("user", user))
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build());
+    }
+    @PostMapping("/reset-password/{key}/{password}/{confirmPassword}")
+    public ResponseEntity<HttpResponse> resetPasswordWithKey(@PathVariable String key,
+                                                          @PathVariable String password,
+                                                          @PathVariable String confirmPassword) {
+       userService.renewPassword(key, password, confirmPassword);
+       return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message("Password reset successfully.")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build());
+    }
+    //END: reset password when user is not logged in
+    
     @GetMapping("/verify/code/{email}/{code}")
     public ResponseEntity<HttpResponse> verifyCode(@PathVariable String email, @PathVariable String code) {
         UserDTO user = userService.verifyCode(email, code);

@@ -37,14 +37,16 @@ public class SecurityConfig {
     private final PasswordEncoder passwordEncoder;
     private final CustomAuthorizationFilter customAuthorizationFilter;
     private static final int STRENGTH = 12;
-//    private static final String[] PUBLIC_URLS = {
-//            "/users/login/**",
-//            "/users/login",
-//            "/users/register/**",
-//            "/users/register",
-//            "/users/verify/**"
-//    };
-    private static final String[] PUBLIC_URLS = {"/**" };
+    private static final String[] PUBLIC_URLS = {
+            "/users/login/**",
+            "/users/login",
+            "/users/register/**",
+            "/users/register",
+            "/users/reset-password/**",
+            "/users/verify/**",
+            "/users/verify/password/**",
+    };
+//    private static final String[] PUBLIC_URLS = {"/**" };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
