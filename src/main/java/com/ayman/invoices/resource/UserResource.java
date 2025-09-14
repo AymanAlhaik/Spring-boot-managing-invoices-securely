@@ -33,6 +33,7 @@ import static com.ayman.invoices.dtomapper.UserDTOMapper.fromUser;
 import static com.ayman.invoices.dtomapper.UserDTOMapper.toUser;
 import static com.ayman.invoices.utils.ExceptionUtils.processError;
 import static java.time.LocalDateTime.now;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.unauthenticated;
 
@@ -47,6 +48,7 @@ public class UserResource {
     private final TokenProvider tokenProvider;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
+    private final String TOKEN_PREFIX = "Bearer ";
 
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> loginUser(@RequestBody @Valid LoginForm loginForm) {
@@ -122,6 +124,7 @@ public class UserResource {
                         .statusCode(OK.value())
                         .build());
     }
+
     //START: reset password when user is not logged in
     @GetMapping("/reset-password/{email}")
     public ResponseEntity<HttpResponse> resetPassword(@PathVariable String email) {
@@ -134,9 +137,10 @@ public class UserResource {
                         .statusCode(OK.value())
                         .build());
     }
+
     @GetMapping("/verify/password/{key}")
     public ResponseEntity<HttpResponse> verifyPasswordUrl(@PathVariable String key) {
-        UserDTO user =  userService.verifyPasswordKey(key);
+        UserDTO user = userService.verifyPasswordKey(key);
         return ResponseEntity.ok().body(
                 HttpResponse.builder()
                         .timeStamp(now().toString())
@@ -146,12 +150,13 @@ public class UserResource {
                         .statusCode(OK.value())
                         .build());
     }
+
     @PostMapping("/reset-password/{key}/{password}/{confirmPassword}")
     public ResponseEntity<HttpResponse> resetPasswordWithKey(@PathVariable String key,
-                                                          @PathVariable String password,
-                                                          @PathVariable String confirmPassword) {
-       userService.renewPassword(key, password, confirmPassword);
-       return ResponseEntity.ok().body(
+                                                             @PathVariable String password,
+                                                             @PathVariable String confirmPassword) {
+        userService.renewPassword(key, password, confirmPassword);
+        return ResponseEntity.ok().body(
                 HttpResponse.builder()
                         .timeStamp(now().toString())
                         .message("Password reset successfully.")
@@ -175,15 +180,54 @@ public class UserResource {
                         .statusCode(OK.value())
                         .build());
     }
+
     @GetMapping("/verify/account/{key}")
-    public ResponseEntity<HttpResponse> verifyAccount( @PathVariable String key) {
+    public ResponseEntity<HttpResponse> verifyAccount(@PathVariable String key) {
         return ResponseEntity.ok().body(
                 HttpResponse.builder()
                         .timeStamp(now().toString())
-                        .message(userService.verifyAccount(key).isEnabled()? "Account already verified" : "Account verified")
+                        .message(userService.verifyAccount(key).isEnabled() ? "Account already verified" : "Account verified")
                         .status(OK)
                         .statusCode(OK.value())
                         .build());
+    }
+
+    //refresh token
+    @GetMapping("/refresh/token")
+    public ResponseEntity<HttpResponse> refreshToken(HttpServletRequest request) {
+        if (isHeaderAndTokenValid(request)) {
+            String token = request.getHeader(AUTHORIZATION).substring(TOKEN_PREFIX.length());
+            UserDTO user = userService.getUserByEmail(tokenProvider.getSubject(token, request));
+            return ResponseEntity.ok().body(
+                    HttpResponse.builder()
+                            .timeStamp(now().toString())
+                            .data(Map.of("user", user,
+                                    "access_token", tokenProvider.createAccessToken(getUserPrincipal(user)),
+                                    "refresh_token", token))
+                            .message("token refreshed")
+                            .status(OK)
+                            .statusCode(OK.value())
+                            .build());
+        } else {
+            return ResponseEntity.badRequest().body(
+                    HttpResponse.builder()
+                            .timeStamp(now().toString())
+                            .reason("refresh token missing or invalid")
+                            .developerMessage("refresh token missing or invalid")
+                            .status(BAD_REQUEST)
+                            .statusCode(BAD_REQUEST.value())
+                            .build());
+        }
+    }
+
+    private boolean isHeaderAndTokenValid(HttpServletRequest request) {
+        return request.getHeader(AUTHORIZATION) != null
+                && request.getHeader(AUTHORIZATION).startsWith(TOKEN_PREFIX)
+                && tokenProvider.isTokenValid(
+                tokenProvider.getSubject(request.getHeader(AUTHORIZATION).substring(TOKEN_PREFIX.length()), request),
+                request.getHeader(AUTHORIZATION).substring(TOKEN_PREFIX.length())
+        );
+
     }
 
     private Authentication authenticate(String email, String password) {

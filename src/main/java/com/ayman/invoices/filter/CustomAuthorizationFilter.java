@@ -32,7 +32,7 @@ import static org.springframework.http.HttpHeaders.EMPTY;
 @Slf4j
 public class CustomAuthorizationFilter extends OncePerRequestFilter {
     private static final String TOKEN_PREFIX = "Bearer ";
-    private static final String[] PUBLIC_ROUTES = {"/users/login", "/users/verify/code", "/users/register"};
+    private static final String[] PUBLIC_ROUTES = {"/users/login", "/users/verify/code", "/users/register", "/users/refresh/token"};
     private static final String HTTP_OPTIONS_METHOD = "OPTIONS";
     protected static final String EMAIL_KEY = "email";
     protected static final String TOKEN_KEY = "token";
