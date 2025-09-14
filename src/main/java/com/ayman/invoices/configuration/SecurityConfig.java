@@ -44,6 +44,7 @@ public class SecurityConfig {
             "/users/register",
             "/users/reset-password/**",
             "/users/verify/**",
+            "/users/verify/account/**",
             "/users/verify/password/**",
     };
 //    private static final String[] PUBLIC_URLS = {"/**" };

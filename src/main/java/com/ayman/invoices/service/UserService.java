@@ -17,5 +17,7 @@ public interface UserService {
     UserDTO verifyPasswordKey(String key);
 
     void renewPassword(String key, String password, String confirmPassword);
+
+    UserDTO verifyAccount(String key);
 }
 /* youi aer */

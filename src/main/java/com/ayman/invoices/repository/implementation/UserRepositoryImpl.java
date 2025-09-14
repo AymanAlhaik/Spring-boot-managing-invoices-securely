@@ -71,7 +71,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
             jdbc.update(INSERT_ACCOUNT_VERIFICATION_URL_QUERY, Map.of("userId", user.getId(), "url", verificationUrl));
             //send email to user with verification url
 //            emailService.sendVerificationUrl(user.getFirstName(), user.getEmail(), verificationUrl, ACCOUNT);
-            user.setEnabled(true);
+            user.setEnabled(false);
             user.setNotLocked(true);
             //return newly created user
             return user;
@@ -201,7 +201,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
 
     @Override
     public User verifyPasswordKey(String key) {
-       if(isLinkExpired(key, PASSWORD)) throw new ApiException("Link expired. Please reset your password again.");
+        if (isLinkExpired(key, PASSWORD)) throw new ApiException("Link expired. Please reset your password again.");
         try {
             User user = jdbc.queryForObject(SELECT_USER_BY_PASSWORD_URL_QUERY, Map.of("url", getVerificationUrl(key, PASSWORD.getType())), new UserRowMapper());
 //            jdbc.update(DELETE_USER_FROM_PASSWORD_VERIFICATION_QUERY, Map.of("id", user.getId()));
@@ -216,15 +216,29 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
 
     @Override
     public void renewPassword(String key, String password, String confirmPassword) {
-        if(!password.equals(confirmPassword)) throw new ApiException("Passwords do not match. Please try again later.");
+        if (!password.equals(confirmPassword))
+            throw new ApiException("Passwords do not match. Please try again later.");
         try {
             log.info("before renew password");
-            jdbc.update(UPDATE_USER_PASSWORD_BY_URL_QUERY, Map.of("password",encoder.encode(password),"url", getVerificationUrl(key, PASSWORD.getType())));
+            jdbc.update(UPDATE_USER_PASSWORD_BY_URL_QUERY, Map.of("password", encoder.encode(password), "url", getVerificationUrl(key, PASSWORD.getType())));
             log.info("after renew password");
             jdbc.update(DELETE_VERIFICATION_BY_URL_QUERY, Map.of("url", getVerificationUrl(key, PASSWORD.getType())));
             log.info("after delete verification url");
+        } catch (Exception e) {
+            throw new ApiException("An error occurred. Please try again later.");
         }
-        catch (Exception e) {
+    }
+
+    @Override
+    public User verifyAccount(String key) {
+        try {
+            User user = jdbc.queryForObject(SELECT_USER_BY_ACCOUNT_URL_QUERY, Map.of("url", getVerificationUrl(key, ACCOUNT.getType())), new UserRowMapper());
+            jdbc.update(UPDATE_USER_ENABLED_QUERY, Map.of("enabled", true, "id", user.getId()));
+            //we can delete verification url after verifying the account, that up to requirements
+            return user;
+        } catch (EmptyResultDataAccessException e) {
+            throw new ApiException("This link isn't valid");
+        } catch (Exception e) {
             throw new ApiException("An error occurred. Please try again later.");
         }
     }
@@ -232,7 +246,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
     private Boolean isLinkExpired(String key, VerificationType password) {
         try {
             log.info("url {}", getVerificationUrl(key, password.getType()));
-            return jdbc.queryForObject(SELECT_EXPIRATION_BY_URL, Map.of("url",getVerificationUrl(key, password.getType()) ), Boolean.class);
+            return jdbc.queryForObject(SELECT_EXPIRATION_BY_URL, Map.of("url", getVerificationUrl(key, password.getType())), Boolean.class);
 
         } catch (EmptyResultDataAccessException e) {
             log.error(e.getMessage());

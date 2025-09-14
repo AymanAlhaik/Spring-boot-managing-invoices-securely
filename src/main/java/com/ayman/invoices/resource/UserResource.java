@@ -160,7 +160,7 @@ public class UserResource {
                         .build());
     }
     //END: reset password when user is not logged in
-    
+
     @GetMapping("/verify/code/{email}/{code}")
     public ResponseEntity<HttpResponse> verifyCode(@PathVariable String email, @PathVariable String code) {
         UserDTO user = userService.verifyCode(email, code);
@@ -171,6 +171,16 @@ public class UserResource {
                                 "access_token", tokenProvider.createAccessToken(getUserPrincipal(user)),
                                 "refresh_token", tokenProvider.createRefreshToken(getUserPrincipal(user))))
                         .message("Login success")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build());
+    }
+    @GetMapping("/verify/account/{key}")
+    public ResponseEntity<HttpResponse> verifyAccount( @PathVariable String key) {
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message(userService.verifyAccount(key).isEnabled()? "Account already verified" : "Account verified")
                         .status(OK)
                         .statusCode(OK.value())
                         .build());
